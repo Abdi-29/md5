@@ -59,7 +59,7 @@ void md5_tranform(t_MD5_CTX *ctx, const BYTE data[]) {
         } else if(i < 32) {
             f = G(b, c, d);
             g = (5 * i + 1) % 16;
-		} else if (i <= 47) {
+		} else if (i < 48) {
 			f = H(b, c, d);
 			g = (3 * i + 5) % 16;
 		} else {
