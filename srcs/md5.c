@@ -31,7 +31,7 @@ void md5_command(int argc, char **argv) {
 
 }
 
-void md5_init(t_MD5_CTX *ctx) {
+void md5_init(t_ctx *ctx) {
     ctx->data_len = 0;
     ctx->bit_len = 0;
     ctx->state[0] = 0x67425301;
@@ -40,17 +40,15 @@ void md5_init(t_MD5_CTX *ctx) {
     ctx->state[3] = 0x10325476;
 }
 
-void md5_tranform(t_MD5_CTX *ctx, const BYTE data[]) {
+void md5_tranform(t_ctx *ctx, const BYTE data[]) {
     WORD a, b, c, d, m[16], i, j;
 
     a = ctx->state[0];
     b = ctx->state[1];
     c = ctx->state[2];
     d = ctx->state[3];
+    md5_decode(data, m);
 
-    for(i = 0, j = 0; i < 16; i++, j += 4) {
-        m[i] = (data[j]) | (data[j + 1] << 8) | (data[j + 1] << 16) | (data[j + 1] << 24);
-    }
     for(i = 0; i < 64; i++) {
         WORD f, g;
         if(i < 16) {
@@ -77,4 +75,41 @@ void md5_tranform(t_MD5_CTX *ctx, const BYTE data[]) {
     ctx->state[1] = b;
     ctx->state[2] = c;
     ctx->state[3] = d;
+}
+
+void md_update(t_ctx *ctx, const BYTE input[], WORD length) {
+    WORD index, i, first_part;
+
+    index = ctx->data_len / 8 % 64;
+    first_part = 64 - index;
+
+    if((ctx->data_len += (length << 3)) < (length << 3)) {
+        ctx->bit_len++;
+    }
+    ctx->bit_len += (length >> 29);
+
+    if(length >= first_part) {
+        memcpy(ctx->data, input, first_part);
+        md5_tranform(ctx, )
+    }
+
+}
+
+void md5_decode(const BYTE output[], WORD input[]) {
+    WORD i, j;
+
+    for(i = 0, j = 0; i < 16; i++, j += 4) {
+        input[i] = (output[j]) | (output[j + 1] << 8) | (output[j + 1] << 16) | (output[j + 1] << 24);
+    }
+}
+
+void md5_encode(const BYTE output[], WORD input[]) {
+    WORD i, j;
+
+    for(i = 0, j = 0; i < 16; i++, j += 4) {
+        input[j] = output[i] & 0xff;
+        input[j + 1] = (output[i] >> 8) & 0xff;
+        input[j + 2] = (output[i] >> 16) & 0xff;
+        input[j + 3] = (output[i] >> 24) & 0xff;
+    }
 }

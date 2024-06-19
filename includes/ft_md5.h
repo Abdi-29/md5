@@ -17,11 +17,11 @@ typedef struct {
     WORD data_len;
     unsigned long long bit_len;
     WORD state[4];
-} t_MD5_CTX;
+} t_ctx;
 
-void md5_tranform(t_MD5_CTX *ctx, const BYTE data[]);
-void md5_init(t_MD5_CTX *ctx);
-void md5_update(t_MD5_CTX *ctx, const BYTE data[], size_t len);
-void md5_final(t_MD5_CTX *ctx, BYTE hash[]);
+void md5_tranform(t_ctx *ctx, const BYTE data[]);
+void md5_init(t_ctx *ctx);
+void md5_update(t_ctx *ctx, const BYTE data[], size_t len);
+void md5_final(t_ctx *ctx, BYTE hash[]);
 
 #endif
