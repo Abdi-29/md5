@@ -34,7 +34,31 @@ const unsigned char	padding[64] = {
 };
 
 void md5_command(int argc, char **argv) {
+    t_ctx ctx;
+    char *input;
+    int flag;
 
+    parse_flag(&flag, argc, argv);
+}
+
+void parse_flag(int *flag, int argc, char **argv) {
+    for(int i = 0; i < argc; i++) {
+        if(argv[i][0] == '-') {
+            if(strcmp(argv[i], '-p')) {
+                *flag |= FLAG_P;
+            } else if(strcmp(argv[i], '-q')) {
+                *flag |= FLAG_Q;
+            } else if(strcmp(argv[i], '-r')) {
+                *flag |= FLAG_R;
+            } else if(strcmp(argv[i], '-s')) {
+                if(argv[i]) {
+                    md5_string(argv[++i], flag);
+                }
+            } else {
+                printf("Error: ft_ssl: md5: %s", argv[i]);
+            }
+        }
+    }
 }
 
 void md5_init(t_ctx *ctx) {
@@ -70,17 +94,21 @@ void md5_tranform(t_ctx *ctx, const BYTE buffer[]) {
 			f = I(b, c, d);
 			g = (7 * i) % 16;
 		}
-        WORD temp = d;
+        f = f + a + k_table[i] + m[g];
+        a = d;
         d = c;
         c = b;
-        b = b + ((a + f + k_table[i] + m[g]) << s_table[i] | (a + f + k_table[i] + m[g]) >> (32 - s_table[i]));
-        a = temp;
+        b = b + left_rotate(f, s_table[i]);
     }
 
     ctx->state[0] = a;
     ctx->state[1] = b;
     ctx->state[2] = c;
     ctx->state[3] = d;
+}
+
+WORD left_rotate(WORD x, WORD offset) {
+    return (x << offset) | (x >> (32 - offset));
 }
 
 void md_update(t_ctx *ctx, const BYTE input[], WORD length) {
@@ -121,7 +149,7 @@ void md_final(t_ctx *ctx, BYTE hash[]) {
     bzero(ctx, sizeof(*ctx));
 }
 
-void md5_string(const char *input) {
+void md5_string(const char *input, int flag) {
     t_ctx ctx;
     unsigned int len;
 
@@ -129,6 +157,36 @@ void md5_string(const char *input) {
     md5_init(&ctx);
     md5_update(&ctx, (BYTE *)input, len);
     md5_final(&ctx, ctx.digest);
+}
+
+void print_hash(BYTE hash[], const char *input, const char *source, int flag) {
+    if(flag & FLAG_Q) {
+        for(int i = 0; i < 16; i++) {
+            printf("%02x", hash[i]);
+        }
+        printf("\n");
+    } else if(flag & FLAG_R) {
+        for(int i = 0; i < 16; i++) {
+            printf("%02x", hash[i]);
+        }
+        if(source) {
+            printf(" %s\n", source);
+        } else if(input) {
+            printf(" \"%s\"\n", input);
+        } else {
+            printf("\n");
+        }
+    } else {
+        if(source) {
+            printf(" %s", source);
+        } else if(input) {
+            printf("MD5 (\"%s\") = ", input);
+        }
+        for(int i = 0; i < 16; i++) {
+            printf("%02x", hash[i]);
+        }
+        printf("\n");
+    }
 }
 
 void md5_decode(const BYTE output[], WORD input[], WORD count) {

@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FLAG_P 0x01
+#define FLAG_Q 0x08
+#define FLAG_R 0x04
+
 typedef unsigned char BYTE;
 typedef unsigned int WORD;
 
@@ -23,5 +27,6 @@ void md5_tranform(t_ctx *ctx, const BYTE buffer[]);
 void md5_init(t_ctx *ctx);
 void md5_update(t_ctx *ctx, const BYTE buffer[], size_t len);
 void md5_final(t_ctx *ctx, BYTE hash[]);
+void md5_string(const char *input, int flag);
 
 #endif
