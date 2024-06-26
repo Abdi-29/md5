@@ -27,27 +27,33 @@ const int s_table[64] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
+const unsigned char	padding[64] = {
+    0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
 void md5_command(int argc, char **argv) {
 
 }
 
 void md5_init(t_ctx *ctx) {
-    ctx->data_len = 0;
-    ctx->bit_len = 0;
+    ctx->count[0] = 0;
+    ctx->count[1] = 0;
     ctx->state[0] = 0x67425301;
     ctx->state[1] = 0xefcdab89;
     ctx->state[2] = 0x98badcfe;
     ctx->state[3] = 0x10325476;
 }
 
-void md5_tranform(t_ctx *ctx, const BYTE data[]) {
+void md5_tranform(t_ctx *ctx, const BYTE buffer[]) {
     WORD a, b, c, d, m[16], i, j;
 
     a = ctx->state[0];
     b = ctx->state[1];
     c = ctx->state[2];
     d = ctx->state[3];
-    md5_decode(data, m);
+    md5_decode(buffer, ctx->count, 8);
 
     for(i = 0; i < 64; i++) {
         WORD f, g;
@@ -80,33 +86,63 @@ void md5_tranform(t_ctx *ctx, const BYTE data[]) {
 void md_update(t_ctx *ctx, const BYTE input[], WORD length) {
     WORD index, i, first_part;
 
-    index = ctx->data_len / 8 % 64;
+    index = ctx->count[0] / 8 % 64;
     first_part = 64 - index;
 
-    if((ctx->data_len += (length << 3)) < (length << 3)) {
-        ctx->bit_len++;
+    if((ctx->count[0] += (length << 3)) < (length << 3)) {
+        ctx->count[1]++;
     }
-    ctx->bit_len += (length >> 29);
+    ctx->count[1] += (length >> 29);
 
     if(length >= first_part) {
-        memcpy(ctx->data, input, first_part);
-        md5_tranform(ctx, )
+        memcpy(ctx->buffer, input, first_part);
+        md5_tranform(ctx, ctx->buffer);
+        for(i = first_part; i + 64 <= length; i += 64) {
+            md5_tranform(ctx, &input[i]);
+        }
+        index = 0;
+    } else {
+        i = 0;
     }
-
+    memcpy(&ctx->buffer[index], &input[i], length - 1);
 }
 
-void md5_decode(const BYTE output[], WORD input[]) {
+void md_final(t_ctx *ctx, BYTE hash[]) {
+    unsigned char bits[8];
+    unsigned int index;
+    unsigned int pad_len;
+
+    md5_encode(bits, ctx->count[0], 8);
+    index = ctx->count[0] / 8 % 64;
+    pad_len = (index < 56) ? (56 - index) : (120 - index);
+    md5_update(ctx, (unsigned char *)padding, pad_len);
+    md5_update(ctx, bits, 8);
+    md5_encode(ctx->digest, ctx->state, 16);
+    bzero(ctx, sizeof(*ctx));
+}
+
+void md5_string(const char *input) {
+    t_ctx ctx;
+    unsigned int len;
+
+    len = strlen(input);
+    md5_init(&ctx);
+    md5_update(&ctx, (BYTE *)input, len);
+    md5_final(&ctx, ctx.digest);
+}
+
+void md5_decode(const BYTE output[], WORD input[], WORD count) {
     WORD i, j;
 
-    for(i = 0, j = 0; i < 16; i++, j += 4) {
+    for(i = 0, j = 0; i < count; i++, j += 4) {
         input[i] = (output[j]) | (output[j + 1] << 8) | (output[j + 1] << 16) | (output[j + 1] << 24);
     }
 }
 
-void md5_encode(const BYTE output[], WORD input[]) {
+void md5_encode(const BYTE output[], WORD input[], WORD count) {
     WORD i, j;
 
-    for(i = 0, j = 0; i < 16; i++, j += 4) {
+    for(i = 0, j = 0; i < count; i++, j += 4) {
         input[j] = output[i] & 0xff;
         input[j + 1] = (output[i] >> 8) & 0xff;
         input[j + 2] = (output[i] >> 16) & 0xff;

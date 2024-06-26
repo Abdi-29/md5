@@ -13,15 +13,15 @@ typedef unsigned int WORD;
 #define I(B, C, D) (C ^ (B | ~D))
 
 typedef struct {
-    BYTE data[64];
-    WORD data_len;
-    unsigned long long bit_len;
+    BYTE buffer[64];
+    BYTE digest[16];
+    WORD count[2];
     WORD state[4];
 } t_ctx;
 
-void md5_tranform(t_ctx *ctx, const BYTE data[]);
+void md5_tranform(t_ctx *ctx, const BYTE buffer[]);
 void md5_init(t_ctx *ctx);
-void md5_update(t_ctx *ctx, const BYTE data[], size_t len);
+void md5_update(t_ctx *ctx, const BYTE buffer[], size_t len);
 void md5_final(t_ctx *ctx, BYTE hash[]);
 
 #endif
