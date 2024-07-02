@@ -42,17 +42,18 @@ void md5_command(int argc, char **argv) {
 }
 
 void parse_flag(int *flag, int argc, char **argv) {
-    for(int i = 0; i < argc; i++) {
+    for(int i = 1; i + 1 < argc; i++) {
         if(argv[i][0] == '-') {
-            if(strcmp(argv[i], '-p')) {
+            if(strcmp(argv[i], "-p") == 0) {
                 *flag |= FLAG_P;
-            } else if(strcmp(argv[i], '-q')) {
+            } else if(strcmp(argv[i], "-q") == 0) {
                 *flag |= FLAG_Q;
-            } else if(strcmp(argv[i], '-r')) {
+            } else if(strcmp(argv[i], "-r") == 0) {
                 *flag |= FLAG_R;
-            } else if(strcmp(argv[i], '-s')) {
-                if(argv[i]) {
-                    md5_string(argv[++i], flag);
+            } else if(strcmp(argv[i], "-s") == 0) {
+                if(i + 1 < argc) {
+                // printf("hellooooo");
+                    md5_string(argv[++i], *flag);
                 }
             } else {
                 printf("Error: ft_ssl: md5: %s", argv[i]);
@@ -68,9 +69,10 @@ void md5_init(t_ctx *ctx) {
     ctx->state[1] = 0xefcdab89;
     ctx->state[2] = 0x98badcfe;
     ctx->state[3] = 0x10325476;
+     memset(ctx->buffer, 0, sizeof(ctx->buffer));
 }
 
-void md5_tranform(t_ctx *ctx, const BYTE buffer[]) {
+void md5_tranform(t_ctx *ctx, BYTE buffer[]) {
     WORD a, b, c, d, m[16], i, j;
 
     a = ctx->state[0];
@@ -111,52 +113,57 @@ WORD left_rotate(WORD x, WORD offset) {
     return (x << offset) | (x >> (32 - offset));
 }
 
-void md_update(t_ctx *ctx, const BYTE input[], WORD length) {
-    WORD index, i, first_part;
+void	md5_update(t_ctx *context, unsigned char *input, WORD input_len)
+{
+	unsigned int	i;
+	int		index;
+	unsigned int	part_len;
 
-    index = ctx->count[0] / 8 % 64;
-    first_part = 64 - index;
-
-    if((ctx->count[0] += (length << 3)) < (length << 3)) {
-        ctx->count[1]++;
-    }
-    ctx->count[1] += (length >> 29);
-
-    if(length >= first_part) {
-        memcpy(ctx->buffer, input, first_part);
-        md5_tranform(ctx, ctx->buffer);
-        for(i = first_part; i + 64 <= length; i += 64) {
-            md5_tranform(ctx, &input[i]);
-        }
-        index = 0;
-    } else {
-        i = 0;
-    }
-    memcpy(&ctx->buffer[index], &input[i], length - 1);
+	index = ((context->count[0] >> 3) & 0x3F);
+	if ((context->count[0] += (input_len << 3)) < (input_len << 3))
+		context->count[1]++;
+	context->count[1] += (input_len >> 29);
+	part_len = 64 - index;
+	if (input_len >= part_len)
+	{
+		memcpy(&context->buffer[index], input, part_len);
+		md5_tranform(context, context->buffer);
+		i = part_len;
+		while (i + 63 < input_len)
+		{
+			md5_tranform(context, &input[i]);
+			i += 64;
+		}
+		index = 0;
+	}
+	else
+		i = 0;
+	memcpy(&context->buffer[index], &input[i], input_len - i);
 }
 
-void md_final(t_ctx *ctx, BYTE hash[]) {
+void md5_final(t_ctx *ctx) {
     unsigned char bits[8];
     unsigned int index;
     unsigned int pad_len;
 
-    md5_encode(bits, ctx->count[0], 8);
+    md5_encode(bits, ctx->count, 8);
     index = ctx->count[0] / 8 % 64;
     pad_len = (index < 56) ? (56 - index) : (120 - index);
     md5_update(ctx, (unsigned char *)padding, pad_len);
     md5_update(ctx, bits, 8);
-    md5_encode(ctx->digest, ctx->state, 16);
-    bzero(ctx, sizeof(*ctx));
+    // md5_encode(ctx->digest, ctx->state, 16);
+    // bzero(ctx, sizeof(*ctx));
 }
 
 void md5_string(const char *input, int flag) {
     t_ctx ctx;
     unsigned int len;
 
+    printf("hello: ");
     len = strlen(input);
     md5_init(&ctx);
     md5_update(&ctx, (BYTE *)input, len);
-    md5_final(&ctx, ctx.digest);
+    md5_final(&ctx);
 }
 
 void print_hash(BYTE hash[], const char *input, const char *source, int flag) {
@@ -197,13 +204,14 @@ void md5_decode(const BYTE output[], WORD input[], WORD count) {
     }
 }
 
-void md5_encode(const BYTE output[], WORD input[], WORD count) {
+void md5_encode(BYTE output[], const WORD input[], WORD count) {
     WORD i, j;
+    printf("input: %d", input[0]);
 
-    for(i = 0, j = 0; i < count; i++, j += 4) {
-        input[j] = output[i] & 0xff;
-        input[j + 1] = (output[i] >> 8) & 0xff;
-        input[j + 2] = (output[i] >> 16) & 0xff;
-        input[j + 3] = (output[i] >> 24) & 0xff;
+    for(i = 0, j = 0; j < count; i++, j += 4) {
+        output[j] = (unsigned char)(input[i] & 0xff);
+        output[j + 1] = (unsigned char)((input[i] >> 8) & 0xff);
+        output[j + 2] = (unsigned char)((input[i] >> 16) & 0xff);
+        output[j + 3] = (unsigned char)((input[i] >> 24) & 0xff);
     }
 }

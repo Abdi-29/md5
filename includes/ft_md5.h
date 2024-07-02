@@ -23,10 +23,16 @@ typedef struct {
     WORD state[4];
 } t_ctx;
 
-void md5_tranform(t_ctx *ctx, const BYTE buffer[]);
+void md5_tranform(t_ctx *ctx, BYTE buffer[]);
 void md5_init(t_ctx *ctx);
-void md5_update(t_ctx *ctx, const BYTE buffer[], size_t len);
-void md5_final(t_ctx *ctx, BYTE hash[]);
+void md5_update(t_ctx *ctx,  BYTE buffer[], WORD len);
+void md5_final(t_ctx *ctx);
 void md5_string(const char *input, int flag);
+
+void md5_encode(BYTE output[], const WORD input[], WORD count);
+void md5_decode(const BYTE output[], WORD input[], WORD count);
+void print_hash(BYTE hash[], const char *input, const char *source, int flag);
+WORD left_rotate(WORD x, WORD offset);
+void parse_flag(int *flag, int argc, char **argv);
 
 #endif
