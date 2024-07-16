@@ -27,11 +27,11 @@ const int s_table[64] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
-static unsigned char	padding[64] = {
-    0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+// static unsigned char	padding[64] = {
+//     0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+// };
 
 void md5_command(int argc, char **argv) {
     t_ctx ctx;
@@ -39,10 +39,13 @@ void md5_command(int argc, char **argv) {
     int flag;
 
     parse_flag(&flag, argc, argv);
+    if (flag & FLAG_P) {
+        md5_process(STDIN_FILENO, NULL, flag);
+    }
 }
 
 void parse_flag(int *flag, int argc, char **argv) {
-    for(int i = 1; i + 1 < argc; i++) {
+    for(int i = 2; i < argc; i++) {
         if(argv[i][0] == '-') {
             if(strcmp(argv[i], "-p") == 0) {
                 *flag |= FLAG_P;
@@ -59,22 +62,49 @@ void parse_flag(int *flag, int argc, char **argv) {
             } else {
                 printf("Error: ft_ssl: md5: %s", argv[i]);
             }
+        } else {
+            int fd = open(argv[i], O_RDONLY);
+            if(fd == -1) {
+                printf("Error: can't open file %s\n", argv[i]);
+                continue;
+            }
+            md5_process(fd, argv[i], *flag);
+            close(fd);
         }
     }
+}
+
+void md5_process(int fd, const char *source, int flag) {
+    t_ctx ctx;
+    uint1 buffer[1024];
+    uint32_t ret;
+    uint1 hash[16];
+
+    md5_init(&ctx);
+    while ((ret = read(fd, buffer, 1024)) > 0) {
+        md5_update(&ctx, buffer, ret);
+    }
+    if (ret < 0) {
+        printf("Error reading file %s\n", source);
+        return;
+    }
+    md5_final(&ctx, hash);
+    print_hash(hash, NULL, source, flag);
 }
 
 void md5_init(t_ctx *ctx) {
     ctx->count[0] = 0;
     ctx->count[1] = 0;
-    ctx->state[0] = 0x67425301;
+    ctx->state[0] = 0x67452301;
     ctx->state[1] = 0xefcdab89;
     ctx->state[2] = 0x98badcfe;
     ctx->state[3] = 0x10325476;
-    memset(ctx->buffer, 0, 64);
 }
 
-void md5_tranform(t_ctx *ctx, uint1 buffer[]) {
-    uint4 a, b, c, d, m[16], i, j, x[16];
+
+void md5_tranform(t_ctx *ctx, uint1 *buffer) {
+    uint32_t x[16];
+    unsigned int a, b, c, d;
 
     a = ctx->state[0];
     b = ctx->state[1];
@@ -82,79 +112,81 @@ void md5_tranform(t_ctx *ctx, uint1 buffer[]) {
     d = ctx->state[3];
     md5_decode(x, buffer, 64);
 
-    for(i = 0; i < 64; i++) {
-        uint4 f, g;
+    for(unsigned int i = 0; i < (unsigned int)64; i++) {
+        unsigned int f, g;
         if(i < 16) {
             f = F(b, c, d);
             g = i;
         } else if(i < 32) {
             f = G(b, c, d);
             g = (5 * i + 1) % 16;
-		} else if (i < 48) {
-			f = H(b, c, d);
-			g = (3 * i + 5) % 16;
-		} else {
-			f = I(b, c, d);
-			g = (7 * i) % 16;
-		}
-        f = f + a + k_table[i] + m[g];
+        } else if (i < 48) {
+            f = H(b, c, d);
+            g = (3 * i + 5) % 16;
+        } else {
+            f = I(b, c, d);
+            g = (7 * i) % 16;
+        }
+        f = f + a + k_table[i] + x[g];
         a = d;
         d = c;
         c = b;
         b = b + left_rotate(f, s_table[i]);
     }
 
-    ctx->state[0] = a;
-    ctx->state[1] = b;
-    ctx->state[2] = c;
-    ctx->state[3] = d;
+    ctx->state[0] += a;
+    ctx->state[1] += b;
+    ctx->state[2] += c;
+    ctx->state[3] += d;
     memset(x, 0, sizeof x);
 }
 
-uint4 left_rotate(uint4 x, uint4 offset) {
+uint32_t left_rotate(uint32_t x, int offset) {
     return (x << offset) | (x >> (32 - offset));
 }
 
-void	md5_update(t_ctx *context, unsigned char *input, uint4 input_len)
+void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len)
 {
-	unsigned int	i;
-	unsigned		index;
-	unsigned int	part_len;
+    unsigned int i;
+    uint32_t index;
+    unsigned int part_len;
 
-	index = context->count[0] / 8 % 64;
-	if ((context->count[0] += (input_len << 3)) < (input_len << 3))
-		context->count[1]++;
-	context->count[1] += (input_len >> 29);
-	part_len = 64 - index;
-	if (input_len >= part_len)
-	{
-		memcpy(&context->buffer[index], input, part_len);
-		md5_tranform(context, context->buffer);
-		i = part_len;
-		while (i + 64 <= input_len)
-		{
-			md5_tranform(context, &input[i]);
-			i += 64;
-		}
-		index = 0;
-	}
-	else
-		i = 0;
-	memcpy(&context->buffer[index], &input[i], input_len - i);
+    index = (unsigned int)(context->count[0] >> 3) & 0x3f;
+    if ((context->count[0] += (input_len << 3)) < (input_len << 3))
+        context->count[1]++;
+    context->count[1] += (input_len >> 29);
+    part_len = 64 - index;
+    if (input_len >= part_len)
+    {
+        memcpy(&context->buffer[index], input, part_len);
+        md5_tranform(context, context->buffer);
+        for (i = part_len; i + 64 <= input_len; i += 64)
+            md5_tranform(context, &input[i]);
+        index = 0;
+    }
+    else
+        i = 0;  
+    memcpy(&context->buffer[index], &input[i], input_len - i);
 }
 
-void md5_final(t_ctx *ctx, uint1 hash[]) {
+void md5_final(t_ctx *ctx, uint1 *hash) {
     unsigned char bits[8];
-    unsigned int index;
+    uint32_t index;
     unsigned int pad_len;
 
+    const unsigned char	padding[64] = {
+        0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
     md5_encode(bits, ctx->count, 8);
-    index = ctx->count[0] / 8 % 64;
+    index = (unsigned int)(ctx->count[0] >> 3) & 0x3f;
     pad_len = (index < 56) ? (56 - index) : (120 - index);
-    md5_update(ctx, padding, pad_len);
+    md5_update(ctx, (unsigned char *)padding, pad_len);
     md5_update(ctx, bits, 8);
     md5_encode(hash, ctx->state, 16);
-    bzero(ctx, sizeof(*ctx));
+    memset(ctx, 0, sizeof(*ctx));
 }
 
 void md5_string(const char *input, int flag) {
@@ -162,7 +194,6 @@ void md5_string(const char *input, int flag) {
     uint1 hash[16];
     unsigned int len;
 
-    printf("hello: ");
     len = strlen(input);
     md5_init(&ctx);
     md5_update(&ctx, (uint1 *)input, len);
@@ -170,50 +201,51 @@ void md5_string(const char *input, int flag) {
     print_hash(hash, input, NULL, flag);
 }
 
-void print_hash(uint1 hash[], const char *input, const char *source, int flag) {
-    if(flag & FLAG_Q) {
-        for(int i = 0; i < 16; i++) {
+void print_hash(uint1 *hash, const char *input, const char *source, int flag) {
+    if (flag & FLAG_Q) {
+        for (int i = 0; i < 16; i++) {
             printf("%02x", hash[i]);
         }
         printf("\n");
-    } else if(flag & FLAG_R) {
-        for(int i = 0; i < 16; i++) {
+    } else if (flag & FLAG_R) {
+        for (int i = 0; i < 16; i++) {
             printf("%02x", hash[i]);
         }
-        if(source) {
+        if (source) {
             printf(" %s\n", source);
-        } else if(input) {
+        } else if (input) {
             printf(" \"%s\"\n", input);
         } else {
             printf("\n");
         }
     } else {
-        if(source) {
-            printf(" %s", source);
-        } else if(input) {
+        if (source) {
+            printf("MD5 (%s) = ", source);
+        } else if (input) {
             printf("MD5 (\"%s\") = ", input);
         }
-        for(int i = 0; i < 16; i++) {
+        for (int i = 0; i < 16; i++) {
             printf("%02x", hash[i]);
         }
         printf("\n");
     }
 }
 
-void md5_decode(uint4 output[], const uint1 input[], unsigned int len) {
+
+void md5_encode(uint1 output[], const uint32_t input[], unsigned int len) {
     for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
-        output[i] = ((uint4)input[j]) | (((uint4)input[j+1]) << 8) |
-            (((uint4)input[j+2]) << 16) | (((uint4)input[j+3]) << 24);
+        output[j] = (uint1)(input[i] & 0xff);
+        output[j + 1] = (uint1)((input[i] >> 8) & 0xff);
+        output[j + 2] = (uint1)((input[i] >> 16) & 0xff);
+        output[j + 3] = (uint1)((input[i] >> 24) & 0xff);
     }
 }
 
-void md5_encode(uint1 output[], const uint4 input[], unsigned int len) {
-    uint4 i, j;
-
-    for(i = 0, j = 0; j < len; i++, j += 4) {
-        output[j] = input[i] & 0xff;
-        output[j + 1] = (input[i] >> 8) & 0xff;
-        output[j + 2] = (input[i] >> 16) & 0xff;
-        output[j + 3] = (input[i] >> 24) & 0xff;
+void md5_decode(uint32_t output[], const uint1 input[], unsigned int len) {
+    for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
+        output[i] = ((uint32_t)input[j]) |
+                    (((uint32_t)input[j + 1]) << 8) |
+                    (((uint32_t)input[j + 2]) << 16) |
+                    (((uint32_t)input[j + 3]) << 24);
     }
 }

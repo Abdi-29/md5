@@ -15,7 +15,6 @@ int main(int argc, char **argv) {
         {"sha256", &sha256_command},
         {NULL, NULL}
     };
-    printf("argc: %d", argc);
     for(int i = 0; command[i].name != NULL; i++) {
         if(strcmp(argv[1], command[i].name) == 0) {
             command[i].func(argc, argv);
