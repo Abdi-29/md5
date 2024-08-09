@@ -38,5 +38,6 @@ void sha256_final(sha256_ctx *ctx, uint8_t *hash);
 void sha256_process(int fd, const char *source, int flag);
 void sha256_command(int argc, char **argv);
 void sha256_parse_flag(int *flag, int argc, char **argv);
+void sha256_process_stdin(int flag);
 
 #endif

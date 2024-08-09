@@ -36,34 +36,78 @@ void sha256_command(int argc, char **argv) {
 }
 
 void sha256_parse_flag(int *flag, int argc, char **argv) {
-    for(int i = 2; i < argc; i++) {
-        if(argv[i][0] == '-') {
-            if(strcmp(argv[i], "-p") == 0) {
+    int i;
+    for (i = 2; i < argc; i++) {
+        if (argv[i][0] == '-') {
+            if (strcmp(argv[i], "-p") == 0) {
                 *flag |= FLAG_P;
-            } else if(strcmp(argv[i], "-q") == 0) {
+                sha256_process_stdin(*flag);
+            } else if (strcmp(argv[i], "-q") == 0) {
                 *flag |= FLAG_Q;
-            } else if(strcmp(argv[i], "-r") == 0) {
+            } else if (strcmp(argv[i], "-r") == 0) {
                 *flag |= FLAG_R;
-            } else if(strcmp(argv[i], "-s") == 0) {
-                if(i + 1 < argc) {
+            } else if (strcmp(argv[i], "-s") == 0) {
+                if (i + 1 < argc) {
                     sha256_string(argv[++i], *flag);
                 } else {
-                    printf("-s missing command argument\n");
+                    printf("ft_ssl: sha256: -s: No such file or directory\n");
+                    return;
                 }
             } else {
-                printf("Error: ft_ssl: sha256: %s", argv[i]);
+                printf("ft_ssl: sha256: %s: No such file or directory\n", argv[i]);
+                return;
             }
         } else {
-            int fd = open(argv[i], O_RDONLY);
-            if(fd == -1) {
-                printf("Error: can't open file %s\n", argv[i]);
-                continue;
-            }
-            sha256_process(fd, argv[i], *flag);
-            close(fd);
+            break;
         }
     }
+
+    for (; i < argc; i++) {
+        int fd = open(argv[i], O_RDONLY);
+        if (fd == -1) {
+            printf("ft_ssl: sha256: %s: No such file or directory\n", argv[i]);
+            continue;
+        }
+        sha256_process(fd, argv[i], *flag);
+        close(fd);
+    }
 }
+
+void sha256_process_stdin(int flag) {
+    sha256_ctx ctx;
+    unsigned char buffer[1024];
+    unsigned int ret;
+    unsigned char hash[32];
+    char input[1024];
+    int input_len = 0;
+
+    sha256_init(&ctx);
+
+    while ((ret = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
+        if (input_len + ret < sizeof(input)) {
+            memcpy(input + input_len, buffer, ret);
+            input_len += ret;
+        }
+        sha256_update(&ctx, buffer, ret);
+    }
+    
+    if (ret < 0) {
+        perror("Error reading from stdin");
+        return;
+    }
+
+    if (input_len > 0 && input[input_len - 1] == '\n') {
+        input_len--;
+    }
+
+    sha256_final(&ctx, hash);
+
+    if (flag & FLAG_P) {
+        printf("(\"%.*s\")= ", input_len, input);
+    }
+    print_hash(hash, NULL, NULL, flag);
+}
+
 
 void sha256_process(int fd, const char *source, int flag) {
     sha256_ctx ctx;
