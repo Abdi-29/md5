@@ -5,7 +5,7 @@ OBJ_DIR = obj
 INCLUDE = -I includes
 SRC_DIR = srcs
 
-SRC_FILES = main.c md5.c sha256.c 
+SRC_FILES = main.c md5.c sha256.c print.c
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(SRC:.c=.o))
 SRC = $(addprefix $(SRC_DIR)/, $(SRC_FILES))
 

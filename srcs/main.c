@@ -1,5 +1,7 @@
 #include "ft_ssl.h"
 
+unsigned int g_hash_len;
+
 void print_usage() {
     printf("usage: ft_ssl command [flags] [file/string]\n");
 }

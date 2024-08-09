@@ -27,53 +27,89 @@ const int s_table[64] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
-// static unsigned char	padding[64] = {
-//     0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-// };
+void parse_flag(int *flag, int argc, char **argv) {
+    int i;
+
+    for (i = 2; i < argc; i++) {
+        if (argv[i][0] == '-') {
+            if (strcmp(argv[i], "-p") == 0) {
+                *flag |= FLAG_P;
+                md5_process_stdin(*flag);
+            } else if (strcmp(argv[i], "-q") == 0) {
+                *flag |= FLAG_Q;
+            } else if (strcmp(argv[i], "-r") == 0) {
+                *flag |= FLAG_R;
+            } else if (strcmp(argv[i], "-s") == 0) {
+                if (i + 1 < argc) {
+                    md5_string(argv[++i], *flag);
+                } else {
+                    printf("ft_ssl: md5: -s: No such file or directory\n");
+                    return;
+                }
+            } else {
+                printf("ft_ssl: md5: %s: No such file or directory\n", argv[i]);
+                return;
+            }
+        } else {
+            break;
+        }
+    }
+
+    for (; i < argc; i++) {
+        int fd = open(argv[i], O_RDONLY);
+        if (fd == -1) {
+            printf("ft_ssl: md5: %s: No such file or directory\n", argv[i]);
+            continue;
+        }
+        md5_process(fd, argv[i], *flag);
+        close(fd);
+    }
+}
+
+void md5_process_stdin(int flag) {
+    t_ctx ctx;
+    uint1 buffer[1024];
+    uint32_t ret;
+    uint1 hash[16];
+    char input[1024];
+    int input_len = 0;
+
+    md5_init(&ctx);
+
+    while ((ret = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
+        if (input_len + ret < sizeof(input)) {
+            memcpy(input + input_len, buffer, ret);
+            input_len += ret;
+        }
+        md5_update(&ctx, buffer, ret);
+    }
+    
+    if (ret < 0) {
+        perror("Error reading from stdin");
+        return;
+    }
+
+    if (input_len > 0 && input[input_len - 1] == '\n') {
+        input_len--;
+    }
+
+    md5_final(&ctx, hash);
+
+    if (flag & FLAG_P) {
+        printf("(\"%.*s\")= ", input_len, input);
+    }
+    print_hash(hash, NULL, NULL, flag);
+}
+
+
 
 void md5_command(int argc, char **argv) {
     t_ctx ctx;
-    char *input;
-    int flag;
+    int flag = 0;
 
+    g_hash_len = 16;
     parse_flag(&flag, argc, argv);
-    if (flag & FLAG_P) {
-        md5_process(STDIN_FILENO, NULL, flag);
-    }
 }
-
-void parse_flag(int *flag, int argc, char **argv) {
-    for(int i = 2; i < argc; i++) {
-        if(argv[i][0] == '-') {
-            if(strcmp(argv[i], "-p") == 0) {
-                *flag |= FLAG_P;
-            } else if(strcmp(argv[i], "-q") == 0) {
-                *flag |= FLAG_Q;
-            } else if(strcmp(argv[i], "-r") == 0) {
-                *flag |= FLAG_R;
-            } else if(strcmp(argv[i], "-s") == 0) {
-                if(i + 1 < argc) {
-                    md5_string(argv[++i], *flag);
-                } else {
-                    printf("-s missing command argument\n");
-                }
-            } else {
-                printf("Error: ft_ssl: md5: %s", argv[i]);
-            }
-        } else {
-            int fd = open(argv[i], O_RDONLY);
-            if(fd == -1) {
-                printf("Error: can't open file %s\n", argv[i]);
-                continue;
-            }
-            md5_process(fd, argv[i], *flag);
-            close(fd);
-        }
-    }
-}
-
 void md5_process(int fd, const char *source, int flag) {
     t_ctx ctx;
     uint1 buffer[1024];
@@ -92,7 +128,7 @@ void md5_process(int fd, const char *source, int flag) {
     print_hash(hash, NULL, source, flag);
 }
 
-void md5_init(t_ctx *ctx) {
+void md5_init(t_ctx *ctx) {  
     ctx->count[0] = 0;
     ctx->count[1] = 0;
     ctx->state[0] = 0x67452301;
@@ -200,37 +236,6 @@ void md5_string(const char *input, int flag) {
     md5_final(&ctx, hash);
     print_hash(hash, input, NULL, flag);
 }
-
-void print_hash(uint1 *hash, const char *input, const char *source, int flag) {
-    if (flag & FLAG_Q) {
-        for (int i = 0; i < 16; i++) {
-            printf("%02x", hash[i]);
-        }
-        printf("\n");
-    } else if (flag & FLAG_R) {
-        for (int i = 0; i < 16; i++) {
-            printf("%02x", hash[i]);
-        }
-        if (source) {
-            printf(" %s\n", source);
-        } else if (input) {
-            printf(" \"%s\"\n", input);
-        } else {
-            printf("\n");
-        }
-    } else {
-        if (source) {
-            printf("MD5 (%s) = ", source);
-        } else if (input) {
-            printf("MD5 (\"%s\") = ", input);
-        }
-        for (int i = 0; i < 16; i++) {
-            printf("%02x", hash[i]);
-        }
-        printf("\n");
-    }
-}
-
 
 void md5_encode(uint1 output[], const uint32_t input[], unsigned int len) {
     for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {

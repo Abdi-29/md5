@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdint.h>
+#include "ft_util.h"
 
 #define FLAG_P 0x01
 #define FLAG_Q 0x08
@@ -38,10 +39,10 @@ void md5_string(const char *input, int flag);
 
 void md5_encode(uint1 output[], const uint32_t input[], uint32_t count);
 void md5_decode(uint32_t output[], const uint1 input[], unsigned int len);
-void print_hash(uint1 hash[], const char *input, const char *source, int flag);
 uint32_t left_rotate(uint32_t x, int n);
 void parse_flag(int *flag, int argc, char **argv);
 void md5_process(int fd, const char *source, int flag);
+void md5_process_stdin(int flag);
 
 
 #endif
