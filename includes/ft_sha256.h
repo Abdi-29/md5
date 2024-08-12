@@ -4,8 +4,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <stdint.h>
 #include "ft_util.h"
@@ -29,15 +27,14 @@ typedef struct {
     uint64_t bitlen;
 } sha256_ctx;
 
-void sha256_string(const char *input, int flag);
+void sha256_string(const char *input, t_hash_algo *algo);
 void sha256_init(sha256_ctx *ctx);
 void sha256_transform(sha256_ctx *ctx);
 void sha256_update(sha256_ctx *ctx, const uint8_t *input, unsigned int input_len);
 void sha256_pad(sha256_ctx *ctx);
 void sha256_final(sha256_ctx *ctx, uint8_t *hash);
-void sha256_process(int fd, const char *source, int flag);
+void sha256_process(int fd, const char *source, t_hash_algo *algo);
 void sha256_command(int argc, char **argv);
-void sha256_parse_flag(int *flag, int argc, char **argv);
-void sha256_process_stdin(int flag);
+void sha256_process_stdin(t_hash_algo *algo);
 
 #endif

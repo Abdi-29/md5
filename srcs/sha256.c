@@ -26,54 +26,22 @@ static const uint32_t sha256_hash_init[] = {
 void sha256_command(int argc, char **argv) {
     sha256_ctx ctx;
     char *input;
-    int flag;
 
-    g_hash_len = 32;
-    sha256_parse_flag(&flag, argc, argv);
-    if (flag & FLAG_P) {
-        sha256_process(STDIN_FILENO, NULL, flag);
+    t_hash_algo sha256_algo = {
+        .process_fn = sha256_process,
+        .process_stdin = sha256_process_stdin,
+        .process_string = sha256_string,
+        .hash_len = 32,
+        .type = "SHA256"
+    };
+
+    parse_flag(argc, argv, &sha256_algo);
+    if (sha256_algo.flag & FLAG_P) {
+        sha256_process(STDIN_FILENO, NULL, &sha256_algo);
     }
 }
 
-void sha256_parse_flag(int *flag, int argc, char **argv) {
-    int i;
-    for (i = 2; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            if (strcmp(argv[i], "-p") == 0) {
-                *flag |= FLAG_P;
-                sha256_process_stdin(*flag);
-            } else if (strcmp(argv[i], "-q") == 0) {
-                *flag |= FLAG_Q;
-            } else if (strcmp(argv[i], "-r") == 0) {
-                *flag |= FLAG_R;
-            } else if (strcmp(argv[i], "-s") == 0) {
-                if (i + 1 < argc) {
-                    sha256_string(argv[++i], *flag);
-                } else {
-                    printf("ft_ssl: sha256: -s: No such file or directory\n");
-                    return;
-                }
-            } else {
-                printf("ft_ssl: sha256: %s: No such file or directory\n", argv[i]);
-                return;
-            }
-        } else {
-            break;
-        }
-    }
-
-    for (; i < argc; i++) {
-        int fd = open(argv[i], O_RDONLY);
-        if (fd == -1) {
-            printf("ft_ssl: sha256: %s: No such file or directory\n", argv[i]);
-            continue;
-        }
-        sha256_process(fd, argv[i], *flag);
-        close(fd);
-    }
-}
-
-void sha256_process_stdin(int flag) {
+void sha256_process_stdin(t_hash_algo *algo) {
     sha256_ctx ctx;
     unsigned char buffer[1024];
     unsigned int ret;
@@ -102,14 +70,14 @@ void sha256_process_stdin(int flag) {
 
     sha256_final(&ctx, hash);
 
-    if (flag & FLAG_P) {
+    if (algo->flag & FLAG_P) {
         printf("(\"%.*s\")= ", input_len, input);
     }
-    print_hash(hash, NULL, NULL, flag);
+    print_hash(hash, NULL, NULL, algo);
 }
 
 
-void sha256_process(int fd, const char *source, int flag) {
+void sha256_process(int fd, const char *source, t_hash_algo *algo) {
     sha256_ctx ctx;
     unsigned char buffer[1024];
     unsigned int ret;
@@ -124,10 +92,10 @@ void sha256_process(int fd, const char *source, int flag) {
         return;
     }
     sha256_final(&ctx, hash);
-    print_hash(hash, NULL, source, flag);
+    print_hash(hash, NULL, source, algo);
 }
 
-void sha256_string(const char *input, int flag) {
+void sha256_string(const char *input, t_hash_algo *algo) {
     sha256_ctx ctx;
     unsigned char hash[32];
     unsigned int len;
@@ -136,7 +104,7 @@ void sha256_string(const char *input, int flag) {
     sha256_init(&ctx);
     sha256_update(&ctx, (unsigned char *)input, len);
     sha256_final(&ctx, hash);
-    print_hash(hash, input, NULL, flag);
+    print_hash(hash, input, NULL, algo);
 }
 
 void sha256_init(sha256_ctx *ctx) {
@@ -186,7 +154,7 @@ void sha256_update(sha256_ctx *ctx, const uint8_t *input, unsigned int input_len
         if (ctx->datalen == SHA256_BLOCK_SIZE) {
             ctx->bitlen += 512;
             sha256_transform(ctx);
-            // ctx->datalen = 0;
+            ctx->datalen = 0;
         }
     }
 }
@@ -206,7 +174,6 @@ void sha256_pad(sha256_ctx *ctx) {
     }
     sha256_transform(ctx);
 }
-
 
 void sha256_final(sha256_ctx *ctx, uint8_t *hash) {
     // Increase the bit length

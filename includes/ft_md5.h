@@ -4,9 +4,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <stdint.h>
 #include "ft_util.h"
 
@@ -35,14 +32,13 @@ void md5_tranform(t_ctx *ctx, uint1 *buffer);
 void md5_init(t_ctx *ctx);
 void md5_update(t_ctx *ctx, uint1 buffer[], uint32_t len);
 void md5_final(t_ctx *ctx, uint1 hash[16]);
-void md5_string(const char *input, int flag);
+void md5_string(const char *input, t_hash_algo *algo);
 
 void md5_encode(uint1 output[], const uint32_t input[], uint32_t count);
 void md5_decode(uint32_t output[], const uint1 input[], unsigned int len);
 uint32_t left_rotate(uint32_t x, int n);
-void parse_flag(int *flag, int argc, char **argv);
-void md5_process(int fd, const char *source, int flag);
-void md5_process_stdin(int flag);
+void md5_process(int fd, const char *source, t_hash_algo *algo);
+void md5_process_stdin(t_hash_algo *algo);
 
 
 #endif

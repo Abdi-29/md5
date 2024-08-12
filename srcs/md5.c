@@ -27,46 +27,7 @@ const int s_table[64] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
-void parse_flag(int *flag, int argc, char **argv) {
-    int i;
-
-    for (i = 2; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            if (strcmp(argv[i], "-p") == 0) {
-                *flag |= FLAG_P;
-                md5_process_stdin(*flag);
-            } else if (strcmp(argv[i], "-q") == 0) {
-                *flag |= FLAG_Q;
-            } else if (strcmp(argv[i], "-r") == 0) {
-                *flag |= FLAG_R;
-            } else if (strcmp(argv[i], "-s") == 0) {
-                if (i + 1 < argc) {
-                    md5_string(argv[++i], *flag);
-                } else {
-                    printf("ft_ssl: md5: -s: No such file or directory\n");
-                    return;
-                }
-            } else {
-                printf("ft_ssl: md5: %s: No such file or directory\n", argv[i]);
-                return;
-            }
-        } else {
-            break;
-        }
-    }
-
-    for (; i < argc; i++) {
-        int fd = open(argv[i], O_RDONLY);
-        if (fd == -1) {
-            printf("ft_ssl: md5: %s: No such file or directory\n", argv[i]);
-            continue;
-        }
-        md5_process(fd, argv[i], *flag);
-        close(fd);
-    }
-}
-
-void md5_process_stdin(int flag) {
+void md5_process_stdin(t_hash_algo *algo) {
     t_ctx ctx;
     uint1 buffer[1024];
     uint32_t ret;
@@ -95,22 +56,30 @@ void md5_process_stdin(int flag) {
 
     md5_final(&ctx, hash);
 
-    if (flag & FLAG_P) {
+    if (algo->flag & FLAG_P) {
         printf("(\"%.*s\")= ", input_len, input);
     }
-    print_hash(hash, NULL, NULL, flag);
+    print_hash(hash, NULL, NULL, algo);
 }
 
 
 
 void md5_command(int argc, char **argv) {
     t_ctx ctx;
-    int flag = 0;
 
-    g_hash_len = 16;
-    parse_flag(&flag, argc, argv);
+    t_hash_algo md5_algo = {
+        .process_fn = md5_process,
+        .process_stdin = md5_process_stdin,
+        .process_string = md5_string,
+        .hash_len = 16,
+        .type = "MD5"
+    };
+    parse_flag(argc, argv, &md5_algo);
+    // if (md5_algo.flag & FLAG_P) {
+        md5_process(STDIN_FILENO, NULL, &md5_algo);
+    // }
 }
-void md5_process(int fd, const char *source, int flag) {
+void md5_process(int fd, const char *source, t_hash_algo *algo) {
     t_ctx ctx;
     uint1 buffer[1024];
     uint32_t ret;
@@ -125,7 +94,7 @@ void md5_process(int fd, const char *source, int flag) {
         return;
     }
     md5_final(&ctx, hash);
-    print_hash(hash, NULL, source, flag);
+    print_hash(hash, NULL, source, algo);
 }
 
 void md5_init(t_ctx *ctx) {  
@@ -225,7 +194,7 @@ void md5_final(t_ctx *ctx, uint1 *hash) {
     memset(ctx, 0, sizeof(*ctx));
 }
 
-void md5_string(const char *input, int flag) {
+void md5_string(const char *input, t_hash_algo *algo) {
     t_ctx ctx;
     uint1 hash[16];
     unsigned int len;
@@ -234,7 +203,7 @@ void md5_string(const char *input, int flag) {
     md5_init(&ctx);
     md5_update(&ctx, (uint1 *)input, len);
     md5_final(&ctx, hash);
-    print_hash(hash, input, NULL, flag);
+    print_hash(hash, input, NULL, algo);
 }
 
 void md5_encode(uint1 output[], const uint32_t input[], unsigned int len) {
