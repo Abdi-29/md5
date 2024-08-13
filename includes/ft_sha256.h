@@ -9,7 +9,6 @@
 #include "ft_util.h"
 
 #define SHA256_BLOCK_SIZE 64
-#define SHA256_DIGEST_SIZE 32
 
 #define Ch(x, y, z) (((x) & (y)) ^ (~(x) & (z)))
 #define Maj(x, y, z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))

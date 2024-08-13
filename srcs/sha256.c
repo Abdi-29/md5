@@ -1,5 +1,6 @@
 #include "ft_ssl.h"
 #include "ft_sha256.h"
+#include "../libft/includes/libft.h"
 
 static const uint32_t k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -50,14 +51,14 @@ void sha256_process_stdin(t_hash_algo *algo) {
 
     while ((ret = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
         if (input_len + ret < sizeof(input)) {
-            memcpy(input + input_len, buffer, ret);
+            ft_memcpy(input + input_len, buffer, ret);
             input_len += ret;
         }
         sha256_update(&ctx, buffer, ret);
     }
     
     if (ret < 0) {
-        perror("Error reading from stdin");
+        printf("Error reading from stdin");
         return;
     }
 
@@ -97,7 +98,7 @@ void sha256_string(const char *input, t_hash_algo *algo) {
     unsigned char hash[32];
     unsigned int len;
 
-    len = strlen(input);
+    len = ft_strlen(input);
     sha256_init(&ctx);
     sha256_update(&ctx, (unsigned char *)input, len);
     sha256_final(&ctx, hash);
@@ -107,7 +108,7 @@ void sha256_string(const char *input, t_hash_algo *algo) {
 void sha256_init(sha256_ctx *ctx) {
     ctx->datalen = 0;
     ctx->bitlen = 0;
-    memcpy(ctx->state, sha256_hash_init, sizeof(sha256_hash_init));
+    ft_memcpy(ctx->state, sha256_hash_init, sizeof(sha256_hash_init));
 }
 
 void sha256_transform(sha256_ctx *ctx) {
@@ -161,7 +162,6 @@ void sha256_pad(sha256_ctx *ctx) {
     size_t pad_len = (ctx->datalen < 56) ? 56 - ctx->datalen : 120 - ctx->datalen;
     uint8_t pad[64] = {0x80};
 
-
     for (size_t i = 1; i < pad_len; i++) {
         pad[i] = 0x00;
     }
@@ -173,13 +173,9 @@ void sha256_pad(sha256_ctx *ctx) {
 }
 
 void sha256_final(sha256_ctx *ctx, uint8_t *hash) {
-    // Increase the bit length
     ctx->bitlen += ctx->datalen * 8;
 
-    // Pad the message
     sha256_pad(ctx);
-
-    // Produce the final hash value in big-endian order
     for (int i = 0; i < 8; ++i) {
         hash[(i * 4) + 0] = (ctx->state[i] >> 24) & 0xff;
         hash[(i * 4) + 1] = (ctx->state[i] >> 16) & 0xff;

@@ -1,5 +1,6 @@
 #include "ft_ssl.h"
 #include "ft_md5.h"
+#include "../libft/includes/libft.h"
 
 const int k_table[64] = {
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
@@ -39,14 +40,14 @@ void md5_process_stdin(t_hash_algo *algo) {
 
     while ((ret = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
         if (input_len + ret < sizeof(input)) {
-            memcpy(input + input_len, buffer, ret);
+            ft_memcpy(input + input_len, buffer, ret);
             input_len += ret;
         }
         md5_update(&ctx, buffer, ret);
     }
     
     if (ret < 0) {
-        perror("Error reading from stdin");
+        printf("Error reading from stdin");
         return;
     }
 
@@ -72,7 +73,8 @@ void md5_command(int argc, char **argv) {
         .process_stdin = md5_process_stdin,
         .process_string = md5_string,
         .hash_len = 16,
-        .type = "MD5"
+        .type = "MD5",
+        .flag = 0
     };
     parse_flag(argc, argv, &md5_algo);
 }
@@ -140,7 +142,7 @@ void md5_tranform(t_ctx *ctx, uint1 *buffer) {
     ctx->state[1] += b;
     ctx->state[2] += c;
     ctx->state[3] += d;
-    memset(x, 0, sizeof x);
+    ft_memset(x, 0, sizeof x);
 }
 
 uint32_t left_rotate(uint32_t x, int offset) {
@@ -160,7 +162,7 @@ void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len)
     part_len = 64 - index;
     if (input_len >= part_len)
     {
-        memcpy(&context->buffer[index], input, part_len);
+        ft_memcpy(&context->buffer[index], input, part_len);
         md5_tranform(context, context->buffer);
         for (i = part_len; i + 64 <= input_len; i += 64)
             md5_tranform(context, &input[i]);
@@ -168,7 +170,7 @@ void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len)
     }
     else
         i = 0;  
-    memcpy(&context->buffer[index], &input[i], input_len - i);
+    ft_memcpy(&context->buffer[index], &input[i], input_len - i);
 }
 
 void md5_final(t_ctx *ctx, uint1 *hash) {
@@ -188,7 +190,7 @@ void md5_final(t_ctx *ctx, uint1 *hash) {
     md5_update(ctx, (unsigned char *)padding, pad_len);
     md5_update(ctx, bits, 8);
     md5_encode(hash, ctx->state, 16);
-    memset(ctx, 0, sizeof(*ctx));
+    ft_memset(ctx, 0, sizeof(*ctx));
 }
 
 void md5_string(const char *input, t_hash_algo *algo) {
@@ -196,7 +198,7 @@ void md5_string(const char *input, t_hash_algo *algo) {
     uint1 hash[16];
     unsigned int len;
 
-    len = strlen(input);
+    len = ft_strlen(input);
     md5_init(&ctx);
     md5_update(&ctx, (uint1 *)input, len);
     md5_final(&ctx, hash);
