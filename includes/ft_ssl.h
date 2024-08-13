@@ -4,7 +4,7 @@
 #include <string.h>
 
 typedef void(*command_function)(int, char **);
-typedef struct s_type {
+typedef struct s_command {
     const char *name;
     command_function func;
 } t_command;

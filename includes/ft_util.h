@@ -30,5 +30,6 @@ typedef struct s_hash_algo{
 
 void print_hash(unsigned char hash[], const char *input, const char *source, t_hash_algo *algo);
 void parse_flag(int argc, char **argv, t_hash_algo *algo);
+void	print_hex(unsigned int value, int width);
 
 #endif

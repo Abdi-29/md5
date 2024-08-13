@@ -1,6 +1,7 @@
 #include "ft_ssl.h"
 #include "ft_sha256.h"
 #include "../libft/includes/libft.h"
+#include "../libft/includes/ft_printf.h"
 
 static const uint32_t k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -33,7 +34,8 @@ void sha256_command(int argc, char **argv) {
         .process_stdin = sha256_process_stdin,
         .process_string = sha256_string,
         .hash_len = 32,
-        .type = "SHA256"
+        .type = "SHA256",
+        .flag = 0
     };
 
     parse_flag(argc, argv, &sha256_algo);
@@ -58,7 +60,7 @@ void sha256_process_stdin(t_hash_algo *algo) {
     }
     
     if (ret < 0) {
-        printf("Error reading from stdin");
+        ft_printf("Error reading from stdin");
         return;
     }
 
@@ -69,7 +71,11 @@ void sha256_process_stdin(t_hash_algo *algo) {
     sha256_final(&ctx, hash);
 
     if (algo->flag & FLAG_P) {
-        printf("(\"%.*s\")= ", input_len, input);
+        ft_putstr_fd("(\"", 1);
+        for (int i = 0; i < input_len && input[i] != '\0'; i++) {
+            ft_putchar_fd(input[i], 1);
+        }
+        ft_putstr_fd("\")= ", 1);
     }
     print_hash(hash, NULL, NULL, algo);
 }
@@ -86,7 +92,7 @@ void sha256_process(int fd, const char *source, t_hash_algo *algo) {
         sha256_update(&ctx, buffer, ret);
     }
     if (ret < 0) {
-        printf("Error reading file %s\n", source);
+        ft_printf("Error reading file %s\n", source);
         return;
     }
     sha256_final(&ctx, hash);

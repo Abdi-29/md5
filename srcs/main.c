@@ -1,9 +1,10 @@
 #include "ft_ssl.h"
+#include "../libft/includes/ft_printf.h"
 
 unsigned int g_hash_len;
 
 void print_usage() {
-    printf("usage: ft_ssl command [flags] [file/string]\n");
+    ft_printf("usage: ft_ssl command [flags] [file/string]\n");
 }
 
 int main(int argc, char **argv) {
@@ -24,7 +25,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("ft_ssl: Error: '%s' is an invalid command.\n", argv[1]);
+    ft_printf("ft_ssl: Error: '%s' is an invalid command.\n", argv[1]);
     print_usage();
     return 1;
 }

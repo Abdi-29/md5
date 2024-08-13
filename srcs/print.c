@@ -1,33 +1,48 @@
 #include "ft_util.h"
+#include "../libft/includes/libft.h"
+#include "../libft/includes/ft_printf.h"
 
 void print_hash(unsigned char *hash, const char *input, const char *source, t_hash_algo *algo) {
     if (algo->flag & FLAG_Q) {
         for (int i = 0; i < algo->hash_len; i++) {
-            printf("%02x", hash[i]);
+            // printf("%02x", hash[i]);
+            print_hex(hash[i], 2);
         }
-        printf("\n");
+        ft_printf("\n");
     } else if (algo->flag & FLAG_R) {
         for (int i = 0; i < algo->hash_len; i++) {
-            printf("%02x", hash[i]);
+            print_hex(hash[i], 2);
         }
         if (source) {
-            printf(" %s\n", source);
+            ft_printf(" %s\n", source);
         } else if (input) {
-            printf(" \"%s\"\n", input);
+            ft_printf(" \"%s\"\n", input);
         } else {
-            printf("\n");
+            ft_printf("\n");
         }
     } else {
         if (source) {
-            printf("%s (%s) = ", algo->type, source);
+            ft_printf("%s (%s) = ", algo->type, source);
         } else if (input) {
-            printf("%s (\"%s\") = ", algo->type, input);
+            ft_printf("%s (\"%s\") = ", algo->type, input);
         }
         for (int i = 0; i < algo->hash_len; i++) {
-            printf("%02x", hash[i]);
+            print_hex(hash[i], 2);
         }
-        printf("\n");
+        ft_printf("\n");
     }
+}
+
+void	print_hex(unsigned int value, int width) {
+    const char hex_digits[] = "0123456789abcdef";
+    char hex[width + 1];
+
+    for (int i = width - 1; i >= 0; i--) {
+        hex[i] = hex_digits[value & 0x0F];
+        value >>= 4;
+    }
+    hex[width] = '\0';
+    ft_putstr_fd(hex, 1);
 }
 
 void parse_flag(int argc, char **argv, t_hash_algo *algo) {
@@ -48,11 +63,11 @@ void parse_flag(int argc, char **argv, t_hash_algo *algo) {
                     algo->process_string(argv[++i], algo);
                     processed = 1;
                 } else {
-                    printf("ft_ssl: %s: -s: No such file or directory\n", algo->type);
+                    ft_printf("ft_ssl: %s: -s: No such file or directory\n", algo->type);
                     return;
                 }
             } else {
-                printf("ft_ssl: %s: %s: No such file or directory\n", algo->type, argv[i]);
+                ft_printf("ft_ssl: %s: %s: No such file or directory\n", algo->type, argv[i]);
                 return;
             }
         } else {

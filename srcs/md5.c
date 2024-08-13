@@ -1,6 +1,7 @@
 #include "ft_ssl.h"
 #include "ft_md5.h"
 #include "../libft/includes/libft.h"
+#include "../libft/includes/ft_printf.h"
 
 const int k_table[64] = {
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
@@ -47,7 +48,7 @@ void md5_process_stdin(t_hash_algo *algo) {
     }
     
     if (ret < 0) {
-        printf("Error reading from stdin");
+        ft_printf("Error reading from stdin");
         return;
     }
 
@@ -58,7 +59,11 @@ void md5_process_stdin(t_hash_algo *algo) {
     md5_final(&ctx, hash);
 
     if (algo->flag & FLAG_P) {
-        printf("(\"%.*s\")= ", input_len, input);
+        ft_putstr_fd("(\"", 1);
+        for (int i = 0; i < input_len && input[i] != '\0'; i++) {
+            ft_putchar_fd(input[i], 1);
+        }
+        ft_putstr_fd("\")= ", 1);
     }
     print_hash(hash, NULL, NULL, algo);
 }
@@ -89,7 +94,7 @@ void md5_process(int fd, const char *source, t_hash_algo *algo) {
         md5_update(&ctx, buffer, ret);
     }
     if (ret < 0) {
-        printf("Error reading file %s\n", source);
+        ft_printf("Error reading file %s\n", source);
         return;
     }
     md5_final(&ctx, hash);
