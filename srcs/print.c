@@ -32,6 +32,8 @@ void print_hash(unsigned char *hash, const char *input, const char *source, t_ha
 
 void parse_flag(int argc, char **argv, t_hash_algo *algo) {
     int i;
+    int processed = 0;
+
     for (i = 2; i < argc; i++) {
         if (argv[i][0] == '-') {
             if (strcmp(argv[i], "-p") == 0) {
@@ -44,6 +46,7 @@ void parse_flag(int argc, char **argv, t_hash_algo *algo) {
             } else if (strcmp(argv[i], "-s") == 0) {
                 if (i + 1 < argc) {
                     algo->process_string(argv[++i], algo);
+                    processed = 1;
                 } else {
                     printf("ft_ssl: %s: -s: No such file or directory\n", algo->type);
                     return;
@@ -58,12 +61,16 @@ void parse_flag(int argc, char **argv, t_hash_algo *algo) {
     }
 
     for (; i < argc; i++) {
+        processed = 1;
         int fd = open(argv[i], O_RDONLY);
         if (fd == -1) {
-            printf("ft_ssl: sha256: %s: No such file or directory\n", argv[i]);
+            printf("ft_ssl: %s: %s: No such file or directory\n", algo->type, argv[i]);
             continue;
         }
         algo->process_fn(fd, argv[i], algo);
         close(fd);
+    }
+    if (i == argc && !(algo->flag & FLAG_P) && !processed) {
+        algo->process_stdin(algo);
     }
 }

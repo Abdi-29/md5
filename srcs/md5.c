@@ -75,9 +75,6 @@ void md5_command(int argc, char **argv) {
         .type = "MD5"
     };
     parse_flag(argc, argv, &md5_algo);
-    // if (md5_algo.flag & FLAG_P) {
-        md5_process(STDIN_FILENO, NULL, &md5_algo);
-    // }
 }
 void md5_process(int fd, const char *source, t_hash_algo *algo) {
     t_ctx ctx;

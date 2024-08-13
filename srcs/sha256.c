@@ -36,9 +36,6 @@ void sha256_command(int argc, char **argv) {
     };
 
     parse_flag(argc, argv, &sha256_algo);
-    if (sha256_algo.flag & FLAG_P) {
-        sha256_process(STDIN_FILENO, NULL, &sha256_algo);
-    }
 }
 
 void sha256_process_stdin(t_hash_algo *algo) {
