@@ -4,6 +4,8 @@ CFLAGS = -Wall -Wextra -Werror
 OBJ_DIR = obj
 INCLUDE = -I includes
 SRC_DIR = srcs
+LIBFT_DIR = libft
+LIBFT = $(LIBFT_DIR)/libft.a
 
 SRC_FILES = main.c md5.c sha256.c print.c
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(SRC:.c=.o))
@@ -11,14 +13,18 @@ SRC = $(addprefix $(SRC_DIR)/, $(SRC_FILES))
 
 all: $(NAME)
 
-$(NAME): $(OBJ)
+$(NAME): $(LIBFT) $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(FLAGS) $(INCLUDE) -c -o $@ $<
 
+$(LIBFT):
+	$(MAKE) -C $(LIBFT_DIR)	
+
 clean:
+	$(MAKE) -C $(LIBFT_DIR)/ fclean
 	rm -rf $(OBJ_DIR)
 
 fclean:	clean
