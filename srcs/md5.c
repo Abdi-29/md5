@@ -154,8 +154,7 @@ uint32_t left_rotate(uint32_t x, int offset) {
     return (x << offset) | (x >> (32 - offset));
 }
 
-void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len)
-{
+void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len) {
     unsigned int i;
     uint32_t index;
     unsigned int part_len;
@@ -165,16 +164,17 @@ void md5_update(t_ctx *context, unsigned char *input, uint32_t input_len)
         context->count[1]++;
     context->count[1] += (input_len >> 29);
     part_len = 64 - index;
-    if (input_len >= part_len)
-    {
+    if (input_len >= part_len) {
         ft_memcpy(&context->buffer[index], input, part_len);
         md5_tranform(context, context->buffer);
-        for (i = part_len; i + 64 <= input_len; i += 64)
+        for (i = part_len; i + 64 <= input_len; i += 64) {
             md5_tranform(context, &input[i]);
+        }
         index = 0;
     }
-    else
+    else {
         i = 0;  
+    }
     ft_memcpy(&context->buffer[index], &input[i], input_len - i);
 }
 

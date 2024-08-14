@@ -5,7 +5,6 @@
 void print_hash(unsigned char *hash, const char *input, const char *source, t_hash_algo *algo) {
     if (algo->flag & FLAG_Q) {
         for (int i = 0; i < algo->hash_len; i++) {
-            // printf("%02x", hash[i]);
             print_hex(hash[i], 2);
         }
         ft_printf("\n");

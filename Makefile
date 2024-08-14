@@ -7,7 +7,7 @@ SRC_DIR = srcs
 LIBFT_DIR = libft
 LIBFT = $(LIBFT_DIR)/libft.a
 
-SRC_FILES = main.c md5.c sha256.c print.c
+SRC_FILES = main.c md5.c sha256.c util.c
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(SRC:.c=.o))
 SRC = $(addprefix $(SRC_DIR)/, $(SRC_FILES))
 
